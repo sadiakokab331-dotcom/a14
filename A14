@@ -1,0 +1,39 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = sns.load_dataset('exercise')
+
+running_df = df[df['kind'] == 'running']
+
+pulse_1min = running_df[running_df['time'] == '1 min'][['id', 'pulse', 'diet', 'sup']].copy()
+pulse_30min = running_df[running_df['time'] == '30 min'][['id', 'pulse', 'diet', 'sup']].copy()
+
+merged_df = pd.merge(pulse_1min, pulse_30min, on=['id', 'diet', 'sup'], suffixes=('_1min', '_30min'))
+
+merged_df['pulse_change'] = merged_df['pulse_30min'] - merged_df['pulse_1min']
+
+sorted_df = merged_df.sort_values(by='pulse_change', ascending=False)
+
+plot_data = pd.melt(sorted_df, id_vars=['id'], value_vars=['pulse_1min', 'pulse_30min'], var_name='time_period', value_name='pulse')
+
+plt.figure(figsize=(12, 6))
+ax = sns.barplot(data=plot_data, x='id', y='pulse', hue='time_period', order=sorted_df['id'])
+
+for p in ax.patches:
+    height = p.get_height()
+    if height > 0:
+        ax.annotate(f'{int(height)}', 
+                    (p.get_x() + p.get_width() / 2., height), 
+                    ha='center', va='bottom', 
+                    fontsize=9, color='black', 
+                    xytext=(0, 3), 
+                    textcoords='offset points')
+
+plt.title('Fitness Progress Comparison Chart - Running Pulse (1 min vs 30 min)')
+plt.xlabel('Participant ID')
+plt.ylabel('Pulse')
+plt.xticks(rotation=45)
+plt.legend(title='Time Period')
+plt.tight_layout()
+plt.show()
